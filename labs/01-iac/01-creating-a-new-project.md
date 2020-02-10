@@ -18,7 +18,7 @@ cd iac-workshop
 A Pulumi project is just a directory with some files in it. It's possible for you to create a new one by hand. The `pulumi new` command, however, automates the process:
 
 ```bash
-pulumi new typescript -y
+pulumi new csharp -y
 ```
 
 This will print output similar to the following with a bit more information and status as it goes:
@@ -26,34 +26,43 @@ This will print output similar to the following with a bit more information and 
 ```
 Created project 'iac-workshop'
 Created stack 'dev'
-Saved config
 Installing dependencies...
+Build succeeded.
 Finished installing dependencies
 
 Your new project is ready to go!
 ```
 
-This command has created all the files we need, initialized a new stack named `dev` (an instance of our project), and installed the needed package dependencies from NPM.
+This command has created all the files we need, initialized a new stack named `dev` (an instance of our project), and installed the needed package dependencies from NuGet.
 
 ## Step 3 &mdash; Inspect Your New Project
 
 Our project is comprised of multiple files:
 
-* **`index.ts`**: your program's main entrypoint file
-* **`package.json`** and **`package-lock.json`**: your project's NPM dependency information
+* **`Program.cs`**: your program's main entrypoint file
+* **`MyStack.cs`**: your stack definition file
+* **`iac-workshop.csproj`**: your C# project file
 * **`Pulumi.yaml`**: your project's metadata, containing its name and language
 * **`Pulumi.dev.yaml`**: your stack's metadata, containing its name and configuration variables
 * **`tsconfig.json`**: your project's TypeScript settings
-* **`node_modules/`**: a directory containing your project's installed NPM dependencies
+* **`bin/`** and **`obj/`**: directories containing your project's build artifacts
 
-Run `cat index.ts` to see the contents of your project's empty program:
+Open `MyStack.cs` to see the contents of the empty program of your infrastructure stack:
 
-```typescript
-import * as pulumi from "@pulumi/pulumi";
+```csharp
+using Pulumi;
+
+class MyStack : Stack
+{
+    public MyStack()
+    {
+        // Add your resources here
+    }
+}
 ```
 
 Feel free to explore the other files, although we won't be editing any of them by hand.
 
 # Next Steps
 
-* [Configuring AWS](./02-configuring-aws.md)
+* [Configuring Azure](./02-configuring-azure.md)

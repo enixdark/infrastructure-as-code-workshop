@@ -1,45 +1,25 @@
 # Updating Your Infrastructure
 
-We just saw how to create new infrastructure from scratch. Next, let's make a few updates:
+We just saw how to create new infrastructure from scratch. Next, let's add an Azure Storage Account to the existing resource group.
 
-1. Add an object to your bucket.
-2. Serve content from your bucket as a website.
-3. Programmatically create infrastructure.
+This demonstrates how declarative infrastructure as code tools can be used not just for initial provisioning, but also subsequent changes to existing resources.
 
-This demonstrates how declarative infrastrucutre as code tools can be used not just for initial provisioning, but also subsequent changes to existing resources.
+## Step 1 &mdash; Add a Storage Account
 
-## Step 1 &mdash; Add an Object to Your Bucket
+And then add these lines to `MyStack.cs` right after creating the resource group:
 
-Create a directory `site/` and add a new `index.html` file with the following contents:
-
-```html
-<html>
-    <body>
-        <h1>Hello Pulumi</h1>
-    </body>
-</html>
-```
-
-Add an import to your `index.ts` file:
-
-```typescript
+```csharp
 ...
-import * as path from "path";
-...
-```
-
-And then add these lines to `index.ts` right after creating the bucket itself:
-
-```typescript
-...
-const myObject = new aws.s3.BucketObject("index.html", {
-    bucket: myBucket,
-    source: new pulumi.asset.FileAsset(path.join("site", "index.html")),
+var storageAccount = new Azure.Storage.Account("mystorage", new Azure.Storage.AccountArgs
+{
+    ResourceGroupName = resourceGroup.Name,
+    AccountReplicationType = "LRS",
+    AccountTier = "Standard"
 });
 ...
 ```
 
-> :white_check_mark: After these changes, your `index.ts` should [look like this](./code/04-updating-your-infrastructure/step1.ts).
+> :white_check_mark: After these changes, your `MyStack.cs` should [look like this](./code/04-updating-your-infrastructure/step1.cs).
 
 Deploy the changes:
 
@@ -52,9 +32,9 @@ This will give you a preview and selecting `yes` will apply the changes:
 ```
 Updating (dev):
 
-     Type                    Name              Status
-     pulumi:pulumi:Stack     iac-workshop-dev
- +   └─ aws:s3:BucketObject  index.html        created
+     Type                      Name              Status
+     pulumi:pulumi:Stack       iac-workshop-dev
+ +   └─ azure:storage:Account  mystorage         created
 
 Resources:
     + 1 created
@@ -62,61 +42,44 @@ Resources:
 
 Duration: 4s
 
-Permalink: https://app.pulumi.com/joeduffy/iac-workshop/dev/updates/3
+Permalink: https://app.pulumi.com/myuser/iac-workshop/dev/updates/2
 ```
 
-A single resource is added and the 2 existing resources are left unchanged. This is a key attribute of infrastructure as code &mdash; such tools determine the minimal set of changes necessary to update your infrastructure from one change to the next.
+A single resource is added and the 2 existing resources are left unchanged. This is a key attribute of infrastructure as code &mdash; such tools determine the minimal set of changes necessary to update your infrastructure from one version to the next.
 
-Finally, relist the contents of your bucket:
+## Step 2 &mdash; Export Your New Storage Account Name
 
-```bash
-aws s3 ls $(pulumi stack output bucketName)
+To inspect your new bucket, you will need its physical Azure name. Pulumi records a logical name, `mystorage`, however the resulting Azure name will be different.
+
+Programs can export variables which will be shown in the CLI and recorded for each deployment. Export your account's name by changing `MyStack.cs` to:
+
+```csharp
+using Pulumi;
+using Pulumi.Serialization;
+using Azure = Pulumi.Azure;
+
+class MyStack : Stack
+{
+    public MyStack()
+    {
+        var resourceGroup = new Azure.Core.ResourceGroup("my-group");
+
+        var storageAccount = new Azure.Storage.Account("mystorage", new Azure.Storage.AccountArgs
+        {
+            ResourceGroupName = resourceGroup.Name,
+            AccountReplicationType = "LRS",
+            AccountTier = "Standard"
+        });
+
+        this.AccountName =  storageAccount.Name;
+    }
+
+    [Output]
+    public Output<string> AccountName { get; set; }
+}
 ```
 
-Notice that your `index.html` file has been added:
-
-```
-2019-10-22 16:50:54        68 index.html
-```
-
-## Step 2 &mdash; Serve Content From Your Bucket as a Website
-
-To serve content from your bucket as a website, you'll need to update a few properties.
-
-First, your bucket needs a website property that sets the default index document to `index.html`:
-
-```typescript
-...
-const myBucket = new aws.s3.Bucket("my-bucket", {
-    website: {
-        indexDocument: "index.html",
-    },
-});
-...
-```
-
-Next, your `index.html` object will need two changes: an ACL of `public-read` so that it can be accessed anonymously over the Internet, and a content type so that it is served as HTML:
-
-```typescript
-...
-const myObject = new aws.s3.BucketObject("index.html", {
-    acl: "public-read",
-    bucket: myBucket,
-    contentType: "text/html",
-    source: new pulumi.asset.FileAsset(path.join("site", "index.html")),
-});
-...
-```
-
-Finally, export the resulting bucket's endpoint URL so we can easily access it:
-
-```typescript
-...
-export const bucketEndpoint = pulumi.interpolate`http://${myBucket.websiteEndpoint}`;
-...
-```
-
-> :white_check_mark: After these changes, your `index.ts` should [look like this](./code/04-updating-your-infrastructure/step2.ts).
+Note an extra `using` statement, the property declaration and assignment.
 
 Now deploy the changes:
 
@@ -124,96 +87,90 @@ Now deploy the changes:
 pulumi up
 ```
 
-This shows a preview like so:
+Notice a new `Outputs` section is included in the output containing the account's name:
 
 ```
-Previewing update (dev):
-
-     Type                    Name              Plan       Info
-     pulumi:pulumi:Stack     iac-workshop-dev
- ~   ├─ aws:s3:Bucket        my-bucket         update     [diff: +website]
- ~   └─ aws:s3:BucketObject  index.html        update     [diff: ~acl,contentType]
+...
 
 Outputs:
-  + bucketEndpoint: output<string>
-  ~ bucketName    : "my-bucket-8257ac5" => output<string>
+  + AccountName: "mystorage872202e3"
 
 Resources:
-    ~ 2 to update
-    1 unchanged
+    3 unchanged
 
-Do you want to perform this update?
-  yes
-> no
-  details
+Duration: 7s
+
+Permalink: https://app.pulumi.com/myuser/iac-workshop/dev/updates/3
 ```
 
-Selecting `details` during the preview is more interesting this time:
+The difference between logical and physical names is in part due to "auto-naming" which Pulumi does to ensure side-by-side projects and zero-downtime upgrades work seamlessly. It can be disabled if you wish; [read more about auto-naming here](https://www.pulumi.com/docs/intro/concepts/programming-model/#autonaming).
+
+Autonaming is very handy in our case. Each Storage Account receives a subdomain of blob.core.windows.net, therefore the name has to be globally unique across all Azure subscriptions worldwide. Instead of inventing such a name, we can trust Pulumi to generate one.
+
+Also, we haven’t defined an explicit location for the Storage Account. By default, Pulumi inherits the location from the Resource Group. You can always override it with the `Location` property if needed.
+
+## Step 3 &mdash; Inspect Your New Storage Account
+
+Now run the `az` CLI to list the containers in this new account:
 
 ```
-  pulumi:pulumi:Stack: (same)
-    [urn=urn:pulumi:dev::iac-workshop::pulumi:pulumi:Stack::iac-workshop-dev]
-    ~ aws:s3/bucket:Bucket: (update)
-        [id=my-bucket-02d7e7a]
-        [urn=urn:pulumi:dev::iac-workshop::aws:s3/bucket:Bucket::my-bucket]
-        [provider=urn:pulumi:dev::iac-workshop::pulumi:providers:aws::default_1_7_0::229428dd-3bcc-4dcf-ae56-ded0b3b0f322]
-      + website: {
-          + indexDocument: "index.html"
-        }
-    ~ aws:s3/bucketObject:BucketObject: (update)
-        [id=index.html]
-        [urn=urn:pulumi:dev::iac-workshop::aws:s3/bucketObject:BucketObject::index.html]
-        [provider=urn:pulumi:dev::iac-workshop::pulumi:providers:aws::default_1_7_0::229428dd-3bcc-4dcf-ae56-ded0b3b0f322]
-      ~ acl        : "private" => "public-read"
-      ~ contentType: "binary/octet-stream" => "text/html"
-    --outputs:--
-  + bucketEndpoint: output<string>
-  ~ bucketName    : "my-bucket-8257ac5" => output<string>
-
-Do you want to perform this update?
-  yes
-> no
-  details
+az storage container list --account-name $(pulumi stack output AccountName)
+[]
 ```
 
-Afterwards, select `yes` to deploy all of the updates:
+Note that the account is currently empty.
+
+## Step 4 &mdash; Add a Container to Your Storage Account
+
+Add these lines to `MyStack.cs` right after creating the storage account itself:
+
+```csharp
+...
+var container = new Azure.Storage.Container("mycontainer", new Azure.Storage.ContainerArgs
+{
+    Name = "files",
+    StorageAccountName = storageAccount.Name
+});
+...
+```
+
+> :white_check_mark: After these changes, your `MyStack.cs` should [look like this](./code/04-updating-your-infrastructure/step4.cs).
+
+Note that I want to give an explicit name to the storage container instead of an auto-generated one, so I used the property `Name` to set it.
+
+Deploy the changes:
+
+```bash
+pulumi up
+```
+
+This will give you a preview and selecting `yes` will apply the changes:
 
 ```
 Updating (dev):
 
-     Type                    Name              Status      Info
-     pulumi:pulumi:Stack     iac-workshop-dev
- ~   ├─ aws:s3:Bucket        my-bucket         updated     [diff: +website]
- ~   └─ aws:s3:BucketObject  index.html        updated     [diff: ~acl,contentType]
-
-Outputs:
-  + bucketEndpoint: "http://my-bucket-8257ac5.s3-website-us-west-1.amazonaws.com"
-    bucketName: "my-bucket-8257ac5"
+     Type                        Name              Status
+     pulumi:pulumi:Stack         iac-workshop-dev
+ +   └─ azure:storage:Container  mycontainer       created
 
 Resources:
-    ~2 updated
-    1 unchanged
+    + 1 created
+    3 unchanged
 
-Duration: 7s
+Duration: 9s
 
-Permalink: https://app.pulumi.com/joeduffy/iac-workshop/dev/updates/4
-```
+Permalink: https://app.pulumi.com/myuser/iac-workshop/dev/updates/4
 
-## Step 3 &mdash; Access Your Website
+Finally, relist the contents of your account:
 
 ```bash
-curl $(pulumi stack output bucketEndpoint)
+az storage container list --account-name $(pulumi stack output AccountName) -o table
+Name    Lease Status    Last Modified
+------  --------------  -------------------------
+files   unlocked        2020-02-10T12:51:16+00:00
 ```
 
-This will fetch and print our `index.html` file:
-
-```
-<html>
-    <body>
-        <h1>Hello Pulumi</h1>
-    </body>
-</html>
-```
+Notice that your `files` container has been added.
 
 ## Next Steps
 

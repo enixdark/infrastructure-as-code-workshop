@@ -15,17 +15,17 @@ This will show you a preview, much like the `pulumi up` command does:
 ```
 Previewing destroy (prod):
 
-     Type                    Name               Plan
- -   pulumi:pulumi:Stack     iac-workshop-prod  delete
- -   ├─ aws:s3:BucketObject  index.html         delete
- -   └─ aws:s3:Bucket        my-bucket          delete
+     Type                         Name               Plan
+ -   pulumi:pulumi:Stack          iac-workshop-prod  delete
+ -   ├─ azure:storage:Container   mycontainer        delete     
+ -   ├─ azure:storage:Account     mystorage          delete     
+ -   └─ azure:core:ResourceGroup  my-group           delete 
 
 Outputs:
-  - bucketEndpoint: "http://my-bucket-c7318c1.s3-website-eu-west-1.amazonaws.com"
-  - bucketName    : "my-bucket-c7318c1"
+  - AccountName: "mystorage4a3f2830"
 
 Resources:
-    - 3 to delete
+    - 4 to delete
 
 Do you want to perform this destroy?
   yes
@@ -38,21 +38,21 @@ To proceed, select `yes`.
 ```
 Destroying (prod):
 
-     Type                    Name               Status
- -   pulumi:pulumi:Stack     iac-workshop-prod  deleted
- -   ├─ aws:s3:BucketObject  index.html         deleted
- -   └─ aws:s3:Bucket        my-bucket          deleted
+     Type                         Name               Status
+ -   pulumi:pulumi:Stack          iac-workshop-prod  deleted
+ -   ├─ azure:storage:Container   mycontainer        deleted     
+ -   ├─ azure:storage:Account     mystorage          deleted     
+ -   └─ azure:core:ResourceGroup  my-group           deleted 
 
 Outputs:
-  - bucketEndpoint: "http://my-bucket-c7318c1.s3-website-eu-west-1.amazonaws.com"
-  - bucketName    : "my-bucket-c7318c1"
+  - AccountName: "mystorage4a3f2830"
 
 Resources:
-    - 3 deleted
+    - 4 deleted
 
-Duration: 6s
+Duration: 1m0s
 
-Permalink: https://app.pulumi.com/joeduffy/iac-workshop/prod/updates/2
+Permalink: https://app.pulumi.com/myuser/iac-workshop/prod/updates/2
 The resources in the stack have been deleted, but the history and configuration
 associated with the stack are still maintained. If you want to remove the stack
 completely, run 'pulumi stack rm prod'.
@@ -60,7 +60,7 @@ completely, run 'pulumi stack rm prod'.
 
 ## Step 2 &mdash;  Remove the Stack
 
-The AWS resources for this stack have been destroyed. Per the message printed at the end, however, the stack itself, however, is still known to Pulumi. This means all past history is still available and you can perform subsequent updates on this stack.
+The Azure resources for this stack have been destroyed. Per the message printed at the end, however, the stack itself is still known to Pulumi. This means all past history is still available and you can perform subsequent updates on this stack.
 
 Now, fully remove the stack and all history:
 
@@ -89,7 +89,7 @@ Now, go back and repeat steps 1 and 2.
 
 ## Step 4 &mdash;  Verify That Stacks are Gone
 
-Verify that all of this projec'ts stacks are now gone:
+Verify that all of this projec'ts stacks are now gone
 
 ```bash
 pulumi stack ls
@@ -101,7 +101,7 @@ Congratulations! :tada: You have completed the first lab.
 
 Now that you're more familiar with infrastructure as code concepts, and how the tool works, you can feel free to explore the more advanced collection of labs. These labs will teach you how to provision and scale virtual machines, containers (including Kubernetes), and serverless workloads. Feel free to do them sequentially, or choose what's most interesting to you &mdash; this first lab will have given you all of the foundational understanding you need to succeed at any of them.
 
-1. [Provisioning EC2 Virtual Machines](../02-app-arch/01-provisioning-vms.md)
-2. [Deploying Containers to Elastic Container Service (ECS) "Fargate"](../02-app-arch/02-containers-on-ecs.md)
-3. [Deploying Containers to a Kubernetes Cluster](../02-app-arch/03-containers-on-kubernetes.md)
-4. [Using AWS Lambda for Serverless Application Patterns](../02-app-arch/04-lambda-serverless.md)
+1. [Provisioning Virtual Machines](../02-app-arch/01-provisioning-vms.md)
+2. [Deploying Containers to Azure Container Instances](../02-app-arch/02-container-instances.md)
+3. [Deploying Serverless Applications with Azure Functions](../02-app-arch/03-functions-serverless.md)
+4. [Deploying Containers to a Kubernetes Cluster](../02-app-arch/04-containers-on-kubernetes.md)
